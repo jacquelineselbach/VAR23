@@ -8,6 +8,7 @@ let world;
 let stack = [];
 let gameStarted = false;
 let overhangs = [];
+let score = 0;
 const originalBoxSize = 3;
 const boxHeight = 3;
 
@@ -138,6 +139,10 @@ window.addEventListener("click", () => {
         const overlap = size - overHangSize;
 
         if (overlap > 0) {
+
+            score++;
+
+            document.getElementById('score').innerText = `Score: ${score}`;
 
             const newWidth = direction === "x" ? overlap : topLayer.width;
             const newDepth = direction === "z" ? overlap : topLayer.depth;
