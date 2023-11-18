@@ -9,27 +9,27 @@ let stack;
 let overhangs;
 const boxHeight = 1;
 const originalBoxSize = 3;
-let autopilot;
+let roboticAlignment;
 let gameEnded;
 let robotPrecision;
 
 const scoreElement = document.getElementById("score");
-const instructionsElement = document.getElementById("instructions");
+const instructionsElement = document.getElementById("startScreen");
 const resultsElement = document.getElementById("results");
 
 init();
 
-function setRobotPrecision() {
+function setBlockPrecision() {
     robotPrecision = Math.random() - 0.5;
 }
 
 function init() {
-    autopilot = true;
+    roboticAlignment = true;
     gameEnded = false;
     lastTime = 0;
     stack = [];
     overhangs = [];
-    setRobotPrecision();
+    setBlockPrecision();
 
     world = new CANNON.World();
     world.gravity.set(0, -10, 0);
@@ -72,7 +72,7 @@ function init() {
 }
 
 function startGame() {
-    autopilot = false;
+    roboticAlignment = false;
     gameEnded = false;
     lastTime = 0;
     stack = [];
@@ -182,7 +182,7 @@ window.addEventListener("keydown", function (event) {
 });
 
 function eventHandler() {
-    if (autopilot) startGame();
+    if (roboticAlignment) startGame();
     else splitBlockAndAddNextOneIfOverlaps();
 }
 
@@ -245,7 +245,7 @@ function missedTheSpot() {
     scene.remove(topLayer.threejs);
 
     gameEnded = true;
-    if (resultsElement && !autopilot) resultsElement.style.display = "flex";
+    if (resultsElement && !roboticAlignment) resultsElement.style.display = "flex";
 }
 
 function animation(time) {
@@ -258,8 +258,8 @@ function animation(time) {
 
         const boxShouldMove =
             !gameEnded &&
-            (!autopilot ||
-                (autopilot &&
+            (!roboticAlignment ||
+                (roboticAlignment &&
                     topLayer.threejs.position[topLayer.direction] <
                     previousLayer.threejs.position[topLayer.direction] +
                     robotPrecision));
@@ -272,9 +272,9 @@ function animation(time) {
                 missedTheSpot();
             }
         } else {
-            if (autopilot) {
+            if (roboticAlignment) {
                 splitBlockAndAddNextOneIfOverlaps();
-                setRobotPrecision();
+                setBlockPrecision();
             }
         }
 
