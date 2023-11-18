@@ -11,17 +11,12 @@ const boxHeight = 1;
 const originalBoxSize = 3;
 let autopilot;
 let gameEnded;
-let robotPrecision;
 
 const scoreElement = document.getElementById("score");
-const instructionsElement = document.getElementById("instructions");
+const startScreenElement = document.getElementById("startScreen");
 const resultsElement = document.getElementById("results");
 
 init();
-
-function setRobotPrecision() {
-    robotPrecision = Math.random() - 0.5;
-}
 
 function init() {
     autopilot = true;
@@ -29,7 +24,6 @@ function init() {
     lastTime = 0;
     stack = [];
     overhangs = [];
-    setRobotPrecision();
 
     world = new CANNON.World();
     world.gravity.set(0, -10, 0);
@@ -78,7 +72,7 @@ function startGame() {
     stack = [];
     overhangs = [];
 
-    if (instructionsElement) instructionsElement.style.display = "none";
+    if (startScreenElement) startScreenElement.style.display = "none";
     if (resultsElement) resultsElement.style.display = "none";
     if (scoreElement) scoreElement.innerText = 0;
 
@@ -252,31 +246,6 @@ function animation(time) {
     if (lastTime) {
         const timePassed = time - lastTime;
         const speed = 0.008;
-
-        const topLayer = stack[stack.length - 1];
-        const previousLayer = stack[stack.length - 2];
-
-        const boxShouldMove =
-            !gameEnded &&
-            (!autopilot ||
-                (autopilot &&
-                    topLayer.threejs.position[topLayer.direction] <
-                    previousLayer.threejs.position[topLayer.direction] +
-                    robotPrecision));
-
-        if (boxShouldMove) {
-            topLayer.threejs.position[topLayer.direction] += speed * timePassed;
-            topLayer.cannonjs.position[topLayer.direction] += speed * timePassed;
-
-            if (topLayer.threejs.position[topLayer.direction] > 10) {
-                missedTheSpot();
-            }
-        } else {
-            if (autopilot) {
-                splitBlockAndAddNextOneIfOverlaps();
-                setRobotPrecision();
-            }
-        }
 
         if (camera.position.y < boxHeight * (stack.length - 2) + 4) {
             camera.position.y += speed * timePassed;
