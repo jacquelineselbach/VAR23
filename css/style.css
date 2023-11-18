@@ -19,3 +19,15 @@ body {
     background-color: rgba(0, 0, 0, 0.5);
     border-radius: 5px;
 }
+
+#startScreen {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 50%;
+    text-align: center;
+    border: 1px solid black;
+    padding: 10px;
+}
+

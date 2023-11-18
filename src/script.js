@@ -10,6 +10,7 @@ let overhangs = [];
 let score = 0;
 const originalBoxSize = 3;
 const boxHeight = 3;
+const startScreenElement = document.getElementById("startScreen");
 
 init();
 animation();
@@ -113,7 +114,7 @@ function generateBox(x, y, z, width, depth, falls) {
 }
 
 window.addEventListener("click", () => {
-
+    startScreenElement.style.display = "none";
     if (!gameStarted) {
 
         renderer.setAnimationLoop(animation);
