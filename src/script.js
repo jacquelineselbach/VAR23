@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 
-
 let scene;
 let camera;
 let renderer;
@@ -12,15 +11,8 @@ let score = 0;
 const originalBoxSize = 3;
 const boxHeight = 3;
 
-const collisionGroups = {
-    stack: 1,
-    overhang: 2
-};
-
-
 init();
 animation();
-
 
 function init(){
 
@@ -80,10 +72,6 @@ function addLayer(x, z, width, depth, direction) {
     const layer = generateBox(x, y, z, width, depth, false);
     layer.direction = direction;
     layer.moveDirection = 1;
-
-    layer.cannonjs.collisionFilterGroup = collisionGroups.stack;
-    layer.cannonjs.collisionFilterMask = collisionGroups.overhang | collisionGroups.stack;
-
     stack.push(layer);
 
 }
@@ -91,10 +79,6 @@ function addLayer(x, z, width, depth, direction) {
 function addOverhang(x, z, width, depth) {
     const y = boxHeight * (stack.length - 1);
     const overhang = generateBox(x, y, z, width, depth, true);
-
-    overhang.cannonjs.collisionFilterGroup = collisionGroups.overhang;
-    overhang.cannonjs.collisionFilterMask = collisionGroups.stack;
-
     overhangs.push(overhang);
 }
 
@@ -200,11 +184,9 @@ function animation() {
 
     const boundary = 10;
 
-    // Move the top layer
     topLayer.threejs.position[topLayer.direction] += speed * topLayer.moveDirection;
     topLayer.cannonjs.position[topLayer.direction] = topLayer.threejs.position[topLayer.direction];
 
-    // Check if the layer has reached the boundary
     if (Math.abs(topLayer.threejs.position[topLayer.direction]) > boundary) {
         topLayer.moveDirection *= -1; // Reverse the direction
     }
@@ -214,7 +196,6 @@ function animation() {
     }
     updatePhysics();
     renderer.render(scene, camera);
-
 }
 
 function updatePhysics() {
@@ -224,7 +205,6 @@ function updatePhysics() {
         element.threejs.position.copy(element.cannonjs.position);
         element.threejs.quaternion.copy(element.cannonjs.quaternion);
     });
-
 }
 
 
