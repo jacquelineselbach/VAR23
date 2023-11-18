@@ -73,6 +73,7 @@ function init() {
 }
 
 function startGame() {
+    if (gameOverElement) gameOverElement.style.display = "none";
     roboticAlignment = false;
     gameEnded = false;
     lastTime = 0;
@@ -314,4 +315,8 @@ window.addEventListener("resize", () => {
     // Reset renderer
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.render(scene, camera);
+});
+
+document.getElementById("restartButton").addEventListener("click", function() {
+    startGame();
 });
