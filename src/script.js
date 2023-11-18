@@ -12,6 +12,7 @@ const originalBoxSize = 3;
 let roboticAlignment;
 let gameEnded;
 let robotPrecision;
+let baseHue;
 
 const scoreElement = document.getElementById("score");
 const instructionsElement = document.getElementById("startScreen");
@@ -55,6 +56,10 @@ function init() {
 
     scene = new THREE.Scene();
 
+    baseHue = Math.floor(Math.random() * 360);
+    scene.background = generateBackgroundColor();
+
+
     addLayer(0, 0, originalBoxSize, originalBoxSize);
 
     addLayer(-10, 0, originalBoxSize, originalBoxSize, "x");
@@ -70,9 +75,17 @@ function init() {
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setAnimationLoop(animation);
     document.body.appendChild(renderer.domElement);
+
+
 }
 
 function startGame() {
+
+    if (scoreElement) {
+        scoreElement.style.display = "block";
+        scoreElement.innerText = 0;
+    }
+
     if (gameOverElement) gameOverElement.style.display = "none";
     roboticAlignment = false;
     gameEnded = false;
@@ -107,6 +120,14 @@ function startGame() {
     }
 }
 
+function generateBackgroundColor() {
+    const hueVariation = baseHue + (Math.random() - 0.5) * 30;
+    const saturation = 30 + Math.random() * 20;
+    const lightness = 80 + Math.random() * 20;
+    return new THREE.Color(`hsl(${hueVariation}, ${saturation}%, ${lightness}%)`);
+}
+
+
 function addLayer(x, z, width, depth, direction) {
     const y = boxHeight * stack.length;
     const layer = generateBox(x, y, z, width, depth, false);
@@ -123,7 +144,10 @@ function addOverhang(x, z, width, depth) {
 function generateBox(x, y, z, width, depth, falls) {
     // ThreeJS
     const geometry = new THREE.BoxGeometry(width, boxHeight, depth);
-    const color = new THREE.Color(`hsl(${30 + stack.length * 4}, 100%, 50%)`);
+    const hueVariation = baseHue + (Math.random() - 0.5) * 20;
+    const saturation = 50 + Math.random() * 20;
+    const lightness = 70 + Math.random() * 20;
+    const color = new THREE.Color(`hsl(${hueVariation}, ${saturation}%, ${lightness}%)`);
     const material = new THREE.MeshLambertMaterial({ color });
     const mesh = new THREE.Mesh(geometry, material);
     mesh.position.set(x, y, z);
@@ -223,8 +247,8 @@ function splitBlockAndAddNextOneIfOverlaps() {
 
         const nextX = direction == "x" ? topLayer.threejs.position.x : -10;
         const nextZ = direction == "z" ? topLayer.threejs.position.z : -10;
-        const newWidth = topLayer.width; // New layer has the same size as the cut top layer
-        const newDepth = topLayer.depth; // New layer has the same size as the cut top layer
+        const newWidth = topLayer.width;
+        const newDepth = topLayer.depth;
         const nextDirection = direction == "x" ? "z" : "x";
 
         if (scoreElement) scoreElement.innerText = stack.length - 1;
@@ -318,5 +342,7 @@ window.addEventListener("resize", () => {
 });
 
 document.getElementById("restartButton").addEventListener("click", function() {
+    baseHue = Math.floor(Math.random() * 360);
+    scene.background = generateBackgroundColor();
     startGame();
 });

@@ -1,7 +1,6 @@
 body {
     margin: 0;
-    background-color: #000;
-    color: #fff;
+    color: #808080;
     font-family: Monospace, serif;
     font-size: 13px;
     line-height: 24px;
@@ -13,11 +12,12 @@ body {
     top: 10px;
     right: 10px;
     font-size: 24px;
-    color: #fff;
+    color: #808080;
     z-index: 1000;
     padding: 5px;
-    background-color: rgba(0, 0, 0, 0.5);
     border-radius: 5px;
+    display: none;
+
 }
 
 #startScreen {
@@ -27,7 +27,6 @@ body {
     transform: translateX(-50%);
     width: 50%;
     text-align: center;
-    border: 1px solid black;
     padding: 10px;
 }
 
@@ -56,15 +55,16 @@ body {
 }
 
 #restartButton {
-    background-color: yellow;
-    color: black;
+    background-color: transparent;
+    color: white;
     border: none;
-    border-radius: 50%;
     padding: 10px 20px;
     text-align: center;
     font-weight: bold;
+    font-size: 0.3em;
+    font-family: Monospace, serif;
     cursor: pointer;
-    outline: none;
+    outline: white;
 }
 
 .content {
