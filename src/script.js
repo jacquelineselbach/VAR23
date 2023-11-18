@@ -15,6 +15,7 @@ let robotPrecision;
 
 const scoreElement = document.getElementById("score");
 const instructionsElement = document.getElementById("startScreen");
+const gameOverElement = document.getElementById("gameOver");
 const resultsElement = document.getElementById("results");
 
 init();
@@ -72,6 +73,7 @@ function init() {
 }
 
 function startGame() {
+    if (gameOverElement) gameOverElement.style.display = "none";
     roboticAlignment = false;
     gameEnded = false;
     lastTime = 0;
@@ -245,8 +247,11 @@ function missedTheSpot() {
     scene.remove(topLayer.threejs);
 
     gameEnded = true;
+
+    if (gameOverElement) gameOverElement.style.display = "flex";
     if (resultsElement && !roboticAlignment) resultsElement.style.display = "flex";
 }
+
 
 function animation(time) {
     if (lastTime) {
@@ -310,4 +315,8 @@ window.addEventListener("resize", () => {
     // Reset renderer
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.render(scene, camera);
+});
+
+document.getElementById("restartButton").addEventListener("click", function() {
+    startGame();
 });
