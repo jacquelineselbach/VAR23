@@ -9,21 +9,27 @@ let stack;
 let overhangs;
 const boxHeight = 1;
 const originalBoxSize = 3;
-let autopilot;
+let roboticAlignment;
 let gameEnded;
+let robotPrecision;
 
 const scoreElement = document.getElementById("score");
-const startScreenElement = document.getElementById("startScreen");
+const instructionsElement = document.getElementById("startScreen");
 const resultsElement = document.getElementById("results");
 
 init();
 
+function setBlockPrecision() {
+    robotPrecision = Math.random() - 0.5;
+}
+
 function init() {
-    autopilot = true;
+    roboticAlignment = true;
     gameEnded = false;
     lastTime = 0;
     stack = [];
     overhangs = [];
+    setBlockPrecision();
 
     world = new CANNON.World();
     world.gravity.set(0, -10, 0);
@@ -66,13 +72,13 @@ function init() {
 }
 
 function startGame() {
-    autopilot = false;
+    roboticAlignment = false;
     gameEnded = false;
     lastTime = 0;
     stack = [];
     overhangs = [];
 
-    if (startScreenElement) startScreenElement.style.display = "none";
+    if (instructionsElement) instructionsElement.style.display = "none";
     if (resultsElement) resultsElement.style.display = "none";
     if (scoreElement) scoreElement.innerText = 0;
 
@@ -176,7 +182,7 @@ window.addEventListener("keydown", function (event) {
 });
 
 function eventHandler() {
-    if (autopilot) startGame();
+    if (roboticAlignment) startGame();
     else splitBlockAndAddNextOneIfOverlaps();
 }
 
@@ -239,13 +245,38 @@ function missedTheSpot() {
     scene.remove(topLayer.threejs);
 
     gameEnded = true;
-    if (resultsElement && !autopilot) resultsElement.style.display = "flex";
+    if (resultsElement && !roboticAlignment) resultsElement.style.display = "flex";
 }
 
 function animation(time) {
     if (lastTime) {
         const timePassed = time - lastTime;
         const speed = 0.008;
+
+        const topLayer = stack[stack.length - 1];
+        const previousLayer = stack[stack.length - 2];
+
+        const boxShouldMove =
+            !gameEnded &&
+            (!roboticAlignment ||
+                (roboticAlignment &&
+                    topLayer.threejs.position[topLayer.direction] <
+                    previousLayer.threejs.position[topLayer.direction] +
+                    robotPrecision));
+
+        if (boxShouldMove) {
+            topLayer.threejs.position[topLayer.direction] += speed * timePassed;
+            topLayer.cannonjs.position[topLayer.direction] += speed * timePassed;
+
+            if (topLayer.threejs.position[topLayer.direction] > 10) {
+                missedTheSpot();
+            }
+        } else {
+            if (roboticAlignment) {
+                splitBlockAndAddNextOneIfOverlaps();
+                setBlockPrecision();
+            }
+        }
 
         if (camera.position.y < boxHeight * (stack.length - 2) + 4) {
             camera.position.y += speed * timePassed;
