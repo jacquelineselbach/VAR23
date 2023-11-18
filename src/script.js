@@ -15,7 +15,6 @@ let robotPrecision;
 
 const scoreElement = document.getElementById("score");
 const instructionsElement = document.getElementById("startScreen");
-const gameOverElement = document.getElementById("gameOver");
 const resultsElement = document.getElementById("results");
 
 init();
@@ -246,11 +245,8 @@ function missedTheSpot() {
     scene.remove(topLayer.threejs);
 
     gameEnded = true;
-
-    if (gameOverElement) gameOverElement.style.display = "flex";
     if (resultsElement && !roboticAlignment) resultsElement.style.display = "flex";
 }
-
 
 function animation(time) {
     if (lastTime) {
