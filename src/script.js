@@ -12,6 +12,12 @@ let score = 0;
 const originalBoxSize = 3;
 const boxHeight = 3;
 
+const collisionGroups = {
+    stack: 1,
+    overhang: 2
+};
+
+
 init();
 animation();
 
@@ -43,7 +49,7 @@ function init(){
     scene.add(directionalLight);
 
     // Camera
-    const width = 10;
+    const width = 8;
     const height = width * (window.innerWidth / window.innerHeight);
     camera = new THREE.OrthographicCamera(
         width / -2,
@@ -54,7 +60,7 @@ function init(){
         100
     );
 
-    camera.position.set(4,4,4);
+    camera.position.set(6,6,6);
     camera.lookAt(0,0,0);
 
     // camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 )
@@ -73,17 +79,25 @@ function addLayer(x, z, width, depth, direction) {
     const y = boxHeight * stack.length;
     const layer = generateBox(x, y, z, width, depth, false);
     layer.direction = direction;
+    layer.moveDirection = 1;
+
+    layer.cannonjs.collisionFilterGroup = collisionGroups.stack;
+    layer.cannonjs.collisionFilterMask = collisionGroups.overhang | collisionGroups.stack;
+
     stack.push(layer);
 
 }
 
 function addOverhang(x, z, width, depth) {
-
     const y = boxHeight * (stack.length - 1);
     const overhang = generateBox(x, y, z, width, depth, true);
-    overhangs.push(overhang);
 
+    overhang.cannonjs.collisionFilterGroup = collisionGroups.overhang;
+    overhang.cannonjs.collisionFilterMask = collisionGroups.stack;
+
+    overhangs.push(overhang);
 }
+
 
 function generateBox(x, y, z, width, depth, falls) {
 
@@ -99,9 +113,9 @@ function generateBox(x, y, z, width, depth, falls) {
     const shape = new CANNON.Box(
         new CANNON.Vec3(width / 2, boxHeight / 2, depth / 2)
     );
-    let mass = falls ? 5 : 0; 
-    mass *= width / originalBoxSize; 
-    mass *= depth / originalBoxSize; 
+    let mass = falls ? 5 : 5;
+    mass *= width / originalBoxSize;
+    mass *= depth / originalBoxSize;
     const body = new CANNON.Body({ mass, shape });
     body.position.set(x, y, z);
     world.addBody(body);
@@ -181,11 +195,19 @@ window.addEventListener("click", () => {
 
 function animation() {
 
-    const speed = 0.15;
+    const speed = 0.10;
     const topLayer = stack[stack.length -1];
 
-    topLayer.threejs.position[topLayer.direction] += speed;
-    topLayer.cannonjs.position[topLayer.direction] *= speed;
+    const boundary = 10;
+
+    // Move the top layer
+    topLayer.threejs.position[topLayer.direction] += speed * topLayer.moveDirection;
+    topLayer.cannonjs.position[topLayer.direction] = topLayer.threejs.position[topLayer.direction];
+
+    // Check if the layer has reached the boundary
+    if (Math.abs(topLayer.threejs.position[topLayer.direction]) > boundary) {
+        topLayer.moveDirection *= -1; // Reverse the direction
+    }
 
     if (camera.position.y < boxHeight * (stack.length -2) + 4) {
         camera.position.y += speed;
@@ -204,4 +226,5 @@ function updatePhysics() {
     });
 
 }
+
 
