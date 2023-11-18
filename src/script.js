@@ -1,79 +1,115 @@
 import * as THREE from 'three';
 
-let scene;
-let camera;
-let renderer;
+window.focus();
+
+let camera, scene, renderer;
 let world;
-let stack = [];
-let gameStarted = false;
-let overhangs = [];
-let score = 0;
+let lastTime;
+let stack;
+let overhangs;
+const boxHeight = 1;
 const originalBoxSize = 3;
-const boxHeight = 3;
+let autopilot;
+let gameEnded;
+let robotPrecision;
+
+const scoreElement = document.getElementById("score");
+const instructionsElement = document.getElementById("instructions");
+const resultsElement = document.getElementById("results");
 
 init();
-animation();
 
-function init(){
+function setRobotPrecision() {
+    robotPrecision = Math.random() - 0.5;
+}
 
-    // Initialize CannonJS
+function init() {
+    autopilot = true;
+    gameEnded = false;
+    lastTime = 0;
+    stack = [];
+    overhangs = [];
+    setRobotPrecision();
+
     world = new CANNON.World();
-    world.gravity.set(0, -10,0);
+    world.gravity.set(0, -10, 0);
     world.broadphase = new CANNON.NaiveBroadphase();
     world.solver.iterations = 40;
 
-    // Initialize ThreeJs Scene
+    const aspect = window.innerWidth / window.innerHeight;
+    const width = 10;
+    const height = width / aspect;
+
+    camera = new THREE.OrthographicCamera(
+        width / -2, // left
+        width / 2, // right
+        height / 2, // top
+        height / -2, // bottom
+        0, // near plane
+        100 // far plane
+    );
+
+    camera.position.set(4, 4, 4);
+    camera.lookAt(0, 0, 0);
+
     scene = new THREE.Scene();
 
-    // Foundation
     addLayer(0, 0, originalBoxSize, originalBoxSize);
 
-    // First Layer
     addLayer(-10, 0, originalBoxSize, originalBoxSize, "x");
-
-    // Lights
 
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
     scene.add(ambientLight);
 
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6);
-    directionalLight.position.set(10, 20, 0);
-    scene.add(directionalLight);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+    dirLight.position.set(10, 20, 0);
+    scene.add(dirLight);
 
-    // Camera
-    const width = 8;
-    const height = width * (window.innerWidth / window.innerHeight);
-    camera = new THREE.OrthographicCamera(
-        width / -2,
-        width / 2,
-        height / 2,
-        height / -2,
-        1,
-        100
-    );
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setAnimationLoop(animation);
+    document.body.appendChild(renderer.domElement);
+}
 
-    camera.position.set(6,6,6);
-    camera.lookAt(0,0,0);
+function startGame() {
+    autopilot = false;
+    gameEnded = false;
+    lastTime = 0;
+    stack = [];
+    overhangs = [];
 
-    // camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 )
-    // camera.position.z = 5
+    if (instructionsElement) instructionsElement.style.display = "none";
+    if (resultsElement) resultsElement.style.display = "none";
+    if (scoreElement) scoreElement.innerText = 0;
 
-    // Renderer
-    renderer = new THREE.WebGLRenderer({antialias: true});
-    renderer.setSize( window.innerWidth, window.innerHeight );
-    renderer.render(scene,camera);
-    document.body.appendChild( renderer.domElement );
+    if (world) {
+        while (world.bodies.length > 0) {
+            world.remove(world.bodies[0]);
+        }
+    }
 
+    if (scene) {
+        while (scene.children.find((c) => c.type == "Mesh")) {
+            const mesh = scene.children.find((c) => c.type == "Mesh");
+            scene.remove(mesh);
+        }
+
+        addLayer(0, 0, originalBoxSize, originalBoxSize);
+
+        addLayer(-10, 0, originalBoxSize, originalBoxSize, "x");
+    }
+
+    if (camera) {
+        camera.position.set(4, 4, 4);
+        camera.lookAt(0, 0, 0);
+    }
 }
 
 function addLayer(x, z, width, depth, direction) {
-
     const y = boxHeight * stack.length;
     const layer = generateBox(x, y, z, width, depth, false);
     layer.direction = direction;
-    layer.moveDirection = 1;
     stack.push(layer);
-
 }
 
 function addOverhang(x, z, width, depth) {
@@ -82,9 +118,7 @@ function addOverhang(x, z, width, depth) {
     overhangs.push(overhang);
 }
 
-
 function generateBox(x, y, z, width, depth, falls) {
-
     // ThreeJS
     const geometry = new THREE.BoxGeometry(width, boxHeight, depth);
     const color = new THREE.Color(`hsl(${30 + stack.length * 4}, 100%, 50%)`);
@@ -97,7 +131,7 @@ function generateBox(x, y, z, width, depth, falls) {
     const shape = new CANNON.Box(
         new CANNON.Vec3(width / 2, boxHeight / 2, depth / 2)
     );
-    let mass = falls ? 5 : 5;
+    let mass = falls ? 5 : 0;
     mass *= width / originalBoxSize;
     mass *= depth / originalBoxSize;
     const body = new CANNON.Body({ mass, shape });
@@ -112,99 +146,168 @@ function generateBox(x, y, z, width, depth, falls) {
     };
 }
 
-window.addEventListener("click", () => {
+function cutBox(topLayer, overlap, size, delta) {
+    const direction = topLayer.direction;
+    const newWidth = direction == "x" ? overlap : topLayer.width;
+    const newDepth = direction == "z" ? overlap : topLayer.depth;
 
-    if (!gameStarted) {
+    topLayer.width = newWidth;
+    topLayer.depth = newDepth;
 
-        renderer.setAnimationLoop(animation);
-        gameStarted = true;
+    topLayer.threejs.scale[direction] = overlap / size;
+    topLayer.threejs.position[direction] -= delta / 2;
 
-    } else {
+    topLayer.cannonjs.position[direction] -= delta / 2;
 
-        const topLayer = stack[stack.length - 1];
-        const previousLayer = stack[stack.length -2];
+    const shape = new CANNON.Box(
+        new CANNON.Vec3(newWidth / 2, boxHeight / 2, newDepth / 2)
+    );
+    topLayer.cannonjs.shapes = [];
+    topLayer.cannonjs.addShape(shape);
+}
 
-        const direction = topLayer.direction;
-
-        const delta =
-            topLayer.threejs.position[direction] -
-            previousLayer.threejs.position [direction];
-
-        const overHangSize = Math.abs(delta);
-
-        const size = direction === "x" ? topLayer.width : topLayer.depth;
-
-        const overlap = size - overHangSize;
-
-        if (overlap > 0) {
-
-            score++;
-
-            document.getElementById('score').innerText = `Score: ${score}`;
-
-            const newWidth = direction === "x" ? overlap : topLayer.width;
-            const newDepth = direction === "z" ? overlap : topLayer.depth;
-
-            topLayer.width = newWidth;
-            topLayer.depth = newDepth;
-
-            topLayer.threejs.scale[direction] = overlap / size;
-            topLayer.threejs.position[direction] -= delta / 2;
-
-            const overhangShift = (overlap / 2 + overHangSize / 2) * Math.sign(delta);
-
-            const overhangX =
-                direction === "x"
-                    ? topLayer.threejs.position.x + overhangShift
-                    : topLayer.threejs.position.x;
-
-            const overhangZ =
-                direction === "z"
-                    ? topLayer.threejs.position.z + overhangShift
-                    : topLayer.threejs.position.z;
-
-            const overhangWidth = direction === "x" ? overHangSize : newWidth;
-            const overhangDepth = direction === "z" ? overHangSize : newDepth;
-
-            addOverhang(overhangX, overhangZ, overhangWidth, overhangDepth);
-
-            const nextX = direction === "x" ? 0 : -10;
-            const nextZ = direction === "z" ? 0 : -10;
-            const nextDirection = direction === "x" ? "z" : "x";
-
-            addLayer(nextX, nextZ, newWidth, newDepth, nextDirection);
-        }
+window.addEventListener("mousedown", eventHandler);
+window.addEventListener("touchstart", eventHandler);
+window.addEventListener("keydown", function (event) {
+    if (event.key == " ") {
+        event.preventDefault();
+        eventHandler();
+        return;
+    }
+    if (event.key == "R" || event.key == "r") {
+        event.preventDefault();
+        startGame();
+        return;
     }
 });
 
-function animation() {
-
-    const speed = 0.10;
-    const topLayer = stack[stack.length -1];
-
-    const boundary = 10;
-
-    topLayer.threejs.position[topLayer.direction] += speed * topLayer.moveDirection;
-    topLayer.cannonjs.position[topLayer.direction] = topLayer.threejs.position[topLayer.direction];
-
-    if (Math.abs(topLayer.threejs.position[topLayer.direction]) > boundary) {
-        topLayer.moveDirection *= -1; // Reverse the direction
-    }
-
-    if (camera.position.y < boxHeight * (stack.length -2) + 4) {
-        camera.position.y += speed;
-    }
-    updatePhysics();
-    renderer.render(scene, camera);
+function eventHandler() {
+    if (autopilot) startGame();
+    else splitBlockAndAddNextOneIfOverlaps();
 }
 
-function updatePhysics() {
+function splitBlockAndAddNextOneIfOverlaps() {
+    if (gameEnded) return;
 
-    world.step(1 / 60);
+    const topLayer = stack[stack.length - 1];
+    const previousLayer = stack[stack.length - 2];
+
+    const direction = topLayer.direction;
+
+    const size = direction == "x" ? topLayer.width : topLayer.depth;
+    const delta =
+        topLayer.threejs.position[direction] -
+        previousLayer.threejs.position[direction];
+    const overhangSize = Math.abs(delta);
+    const overlap = size - overhangSize;
+
+    if (overlap > 0) {
+        cutBox(topLayer, overlap, size, delta);
+
+        // Overhang
+        const overhangShift = (overlap / 2 + overhangSize / 2) * Math.sign(delta);
+        const overhangX =
+            direction == "x"
+                ? topLayer.threejs.position.x + overhangShift
+                : topLayer.threejs.position.x;
+        const overhangZ =
+            direction == "z"
+                ? topLayer.threejs.position.z + overhangShift
+                : topLayer.threejs.position.z;
+        const overhangWidth = direction == "x" ? overhangSize : topLayer.width;
+        const overhangDepth = direction == "z" ? overhangSize : topLayer.depth;
+
+        addOverhang(overhangX, overhangZ, overhangWidth, overhangDepth);
+
+        const nextX = direction == "x" ? topLayer.threejs.position.x : -10;
+        const nextZ = direction == "z" ? topLayer.threejs.position.z : -10;
+        const newWidth = topLayer.width; // New layer has the same size as the cut top layer
+        const newDepth = topLayer.depth; // New layer has the same size as the cut top layer
+        const nextDirection = direction == "x" ? "z" : "x";
+
+        if (scoreElement) scoreElement.innerText = stack.length - 1;
+        addLayer(nextX, nextZ, newWidth, newDepth, nextDirection);
+    } else {
+        missedTheSpot();
+    }
+}
+
+function missedTheSpot() {
+    const topLayer = stack[stack.length - 1];
+
+    addOverhang(
+        topLayer.threejs.position.x,
+        topLayer.threejs.position.z,
+        topLayer.width,
+        topLayer.depth
+    );
+    world.remove(topLayer.cannonjs);
+    scene.remove(topLayer.threejs);
+
+    gameEnded = true;
+    if (resultsElement && !autopilot) resultsElement.style.display = "flex";
+}
+
+function animation(time) {
+    if (lastTime) {
+        const timePassed = time - lastTime;
+        const speed = 0.008;
+
+        const topLayer = stack[stack.length - 1];
+        const previousLayer = stack[stack.length - 2];
+
+        const boxShouldMove =
+            !gameEnded &&
+            (!autopilot ||
+                (autopilot &&
+                    topLayer.threejs.position[topLayer.direction] <
+                    previousLayer.threejs.position[topLayer.direction] +
+                    robotPrecision));
+
+        if (boxShouldMove) {
+            topLayer.threejs.position[topLayer.direction] += speed * timePassed;
+            topLayer.cannonjs.position[topLayer.direction] += speed * timePassed;
+
+            if (topLayer.threejs.position[topLayer.direction] > 10) {
+                missedTheSpot();
+            }
+        } else {
+            if (autopilot) {
+                splitBlockAndAddNextOneIfOverlaps();
+                setRobotPrecision();
+            }
+        }
+
+        if (camera.position.y < boxHeight * (stack.length - 2) + 4) {
+            camera.position.y += speed * timePassed;
+        }
+
+        updatePhysics(timePassed);
+        renderer.render(scene, camera);
+    }
+    lastTime = time;
+}
+
+function updatePhysics(timePassed) {
+    world.step(timePassed / 1000);
+
     overhangs.forEach((element) => {
         element.threejs.position.copy(element.cannonjs.position);
         element.threejs.quaternion.copy(element.cannonjs.quaternion);
     });
 }
 
+window.addEventListener("resize", () => {
+    // Adjust camera
+    console.log("resize", window.innerWidth, window.innerHeight);
+    const aspect = window.innerWidth / window.innerHeight;
+    const width = 10;
+    const height = width / aspect;
 
+    camera.top = height / 2;
+    camera.bottom = height / -2;
+
+    // Reset renderer
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.render(scene, camera);
+});

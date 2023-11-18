@@ -1,0 +1,74 @@
+Index: src/script.js
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import * as THREE from 'three';\n\n\nlet scene;\nlet camera;\nlet renderer;\nlet world;\nlet stack = [];\nlet gameStarted = false;\nlet overhangs = [];\nlet score = 0;\nconst originalBoxSize = 3;\nconst boxHeight = 3;\n\nconst collisionGroups = {\n    stack: 1,\n    overhang: 2\n};\n\n\ninit();\nanimation();\n\n\nfunction init(){\n\n    // Initialize CannonJS\n    world = new CANNON.World();\n    world.gravity.set(0, -10,0);\n    world.broadphase = new CANNON.NaiveBroadphase();\n    world.solver.iterations = 40;\n\n    // Initialize ThreeJs Scene\n    scene = new THREE.Scene();\n\n    // Foundation\n    addLayer(0, 0, originalBoxSize, originalBoxSize);\n\n    // First Layer\n    addLayer(-10, 0, originalBoxSize, originalBoxSize, \"x\");\n\n    // Lights\n\n    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);\n    scene.add(ambientLight);\n\n    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6);\n    directionalLight.position.set(10, 20, 0);\n    scene.add(directionalLight);\n\n    // Camera\n    const width = 8;\n    const height = width * (window.innerWidth / window.innerHeight);\n    camera = new THREE.OrthographicCamera(\n        width / -2,\n        width / 2,\n        height / 2,\n        height / -2,\n        1,\n        100\n    );\n\n    camera.position.set(6,6,6);\n    camera.lookAt(0,0,0);\n\n    // camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 )\n    // camera.position.z = 5\n\n    // Renderer\n    renderer = new THREE.WebGLRenderer({antialias: true});\n    renderer.setSize( window.innerWidth, window.innerHeight );\n    renderer.render(scene,camera);\n    document.body.appendChild( renderer.domElement );\n\n}\n\nfunction addLayer(x, z, width, depth, direction) {\n\n    const y = boxHeight * stack.length;\n    const layer = generateBox(x, y, z, width, depth, false);\n    layer.direction = direction;\n    layer.moveDirection = 1;\n\n    layer.cannonjs.collisionFilterGroup = collisionGroups.stack;\n    layer.cannonjs.collisionFilterMask = collisionGroups.overhang | collisionGroups.stack;\n\n    stack.push(layer);\n\n}\n\nfunction addOverhang(x, z, width, depth) {\n    const y = boxHeight * (stack.length - 1);\n    const overhang = generateBox(x, y, z, width, depth, true);\n\n    overhang.cannonjs.collisionFilterGroup = collisionGroups.overhang;\n    overhang.cannonjs.collisionFilterMask = collisionGroups.stack;\n\n    overhangs.push(overhang);\n}\n\n\nfunction generateBox(x, y, z, width, depth, falls) {\n\n    // ThreeJS\n    const geometry = new THREE.BoxGeometry(width, boxHeight, depth);\n    const color = new THREE.Color(`hsl(${30 + stack.length * 4}, 100%, 50%)`);\n    const material = new THREE.MeshLambertMaterial({ color });\n    const mesh = new THREE.Mesh(geometry, material);\n    mesh.position.set(x, y, z);\n    scene.add(mesh);\n\n    // CannonJS\n    const shape = new CANNON.Box(\n        new CANNON.Vec3(width / 2, boxHeight / 2, depth / 2)\n    );\n    let mass = falls ? 5 : 5;\n    mass *= width / originalBoxSize;\n    mass *= depth / originalBoxSize;\n    const body = new CANNON.Body({ mass, shape });\n    body.position.set(x, y, z);\n    world.addBody(body);\n\n    return {\n        threejs: mesh,\n        cannonjs: body,\n        width,\n        depth\n    };\n}\n\nwindow.addEventListener(\"click\", () => {\n\n    if (!gameStarted) {\n\n        renderer.setAnimationLoop(animation);\n        gameStarted = true;\n\n    } else {\n\n        const topLayer = stack[stack.length - 1];\n        const previousLayer = stack[stack.length -2];\n\n        const direction = topLayer.direction;\n\n        const delta =\n            topLayer.threejs.position[direction] -\n            previousLayer.threejs.position [direction];\n\n        const overHangSize = Math.abs(delta);\n\n        const size = direction === \"x\" ? topLayer.width : topLayer.depth;\n\n        const overlap = size - overHangSize;\n\n        if (overlap > 0) {\n\n            score++;\n\n            document.getElementById('score').innerText = `Score: ${score}`;\n\n            const newWidth = direction === \"x\" ? overlap : topLayer.width;\n            const newDepth = direction === \"z\" ? overlap : topLayer.depth;\n\n            topLayer.width = newWidth;\n            topLayer.depth = newDepth;\n\n            topLayer.threejs.scale[direction] = overlap / size;\n            topLayer.threejs.position[direction] -= delta / 2;\n\n            const overhangShift = (overlap / 2 + overHangSize / 2) * Math.sign(delta);\n\n            const overhangX =\n                direction === \"x\"\n                    ? topLayer.threejs.position.x + overhangShift\n                    : topLayer.threejs.position.x;\n\n            const overhangZ =\n                direction === \"z\"\n                    ? topLayer.threejs.position.z + overhangShift\n                    : topLayer.threejs.position.z;\n\n            const overhangWidth = direction === \"x\" ? overHangSize : newWidth;\n            const overhangDepth = direction === \"z\" ? overHangSize : newDepth;\n\n            addOverhang(overhangX, overhangZ, overhangWidth, overhangDepth);\n\n            const nextX = direction === \"x\" ? 0 : -10;\n            const nextZ = direction === \"z\" ? 0 : -10;\n            const nextDirection = direction === \"x\" ? \"z\" : \"x\";\n\n            addLayer(nextX, nextZ, newWidth, newDepth, nextDirection);\n        }\n    }\n});\n\nfunction animation() {\n\n    const speed = 0.10;\n    const topLayer = stack[stack.length -1];\n\n    const boundary = 10;\n\n    // Move the top layer\n    topLayer.threejs.position[topLayer.direction] += speed * topLayer.moveDirection;\n    topLayer.cannonjs.position[topLayer.direction] = topLayer.threejs.position[topLayer.direction];\n\n    // Check if the layer has reached the boundary\n    if (Math.abs(topLayer.threejs.position[topLayer.direction]) > boundary) {\n        topLayer.moveDirection *= -1; // Reverse the direction\n    }\n\n    if (camera.position.y < boxHeight * (stack.length -2) + 4) {\n        camera.position.y += speed;\n    }\n    updatePhysics();\n    renderer.render(scene, camera);\n\n}\n\nfunction updatePhysics() {\n\n    world.step(1 / 60);\n    overhangs.forEach((element) => {\n        element.threejs.position.copy(element.cannonjs.position);\n        element.threejs.quaternion.copy(element.cannonjs.quaternion);\n    });\n\n}\n\n\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/script.js b/src/script.js
+--- a/src/script.js	(revision 2e5464f220d5ab2efeb9e6c33d82884e9e4e0cb9)
++++ b/src/script.js	(date 1700317332451)
+@@ -226,5 +226,3 @@
+     });
+ 
+ }
+-
+-
+Index: .idea/workspace.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+><?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<project version=\"4\">\n  <component name=\"AutoImportSettings\">\n    <option name=\"autoReloadType\" value=\"SELECTIVE\" />\n  </component>\n  <component name=\"ChangeListManager\">\n    <list default=\"true\" id=\"917e66c0-1d7b-4efe-9703-ccf49d6dc510\" name=\"Changes\" comment=\"\">\n      <change beforePath=\"$PROJECT_DIR$/.idea/workspace.xml\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/.idea/workspace.xml\" afterDir=\"false\" />\n      <change beforePath=\"$PROJECT_DIR$/src/script.js\" beforeDir=\"false\" afterPath=\"$PROJECT_DIR$/src/script.js\" afterDir=\"false\" />\n    </list>\n    <option name=\"SHOW_DIALOG\" value=\"false\" />\n    <option name=\"HIGHLIGHT_CONFLICTS\" value=\"true\" />\n    <option name=\"HIGHLIGHT_NON_ACTIVE_CHANGELIST\" value=\"false\" />\n    <option name=\"LAST_RESOLUTION\" value=\"IGNORE\" />\n  </component>\n  <component name=\"FileTemplateManagerImpl\">\n    <option name=\"RECENT_TEMPLATES\">\n      <list>\n        <option value=\"JavaScript File\" />\n        <option value=\"CSS File\" />\n        <option value=\"HTML File\" />\n        <option value=\"package.json\" />\n      </list>\n    </option>\n  </component>\n  <component name=\"Git.Settings\">\n    <option name=\"RECENT_BRANCH_BY_REPOSITORY\">\n      <map>\n        <entry key=\"$PROJECT_DIR$\" value=\"main\" />\n      </map>\n    </option>\n    <option name=\"RECENT_GIT_ROOT_PATH\" value=\"$PROJECT_DIR$\" />\n  </component>\n  <component name=\"ProjectLevelVcsManager\" settingsEditedManually=\"true\" />\n  <component name=\"ProjectViewState\">\n    <option name=\"hideEmptyMiddlePackages\" value=\"true\" />\n    <option name=\"showLibraryContents\" value=\"true\" />\n  </component>\n  <component name=\"PropertiesComponent\"><![CDATA[{\n  \"keyToString\": {\n    \"DefaultHtmlFileTemplate\": \"HTML File\",\n    \"RunOnceActivity.OpenProjectViewOnStart\": \"true\",\n    \"RunOnceActivity.ShowReadmeOnStart\": \"true\",\n    \"WebServerToolWindowFactoryState\": \"false\",\n    \"git-widget-placeholder\": \"feature/score-and-constraints\",\n    \"last_opened_file_path\": \"/Users/jacquelineselbach/IdeaProjects/VAR23/lib\",\n    \"list.type.of.created.stylesheet\": \"CSS\",\n    \"node.js.detected.package.eslint\": \"true\",\n    \"node.js.detected.package.tslint\": \"true\",\n    \"node.js.selected.package.eslint\": \"(autodetect)\",\n    \"node.js.selected.package.tslint\": \"(autodetect)\",\n    \"nodejs_package_manager_path\": \"npm\",\n    \"vue.rearranger.settings.migration\": \"true\"\n  }\n}]]></component>\n  <component name=\"RecentsManager\">\n    <key name=\"CopyFile.RECENT_KEYS\">\n      <recent name=\"$PROJECT_DIR$/lib\" />\n    </key>\n  </component>\n  <component name=\"SpellCheckerSettings\" RuntimeDictionaries=\"0\" Folders=\"0\" CustomDictionaries=\"0\" DefaultDictionary=\"application-level\" UseSingleDictionary=\"true\" transferred=\"true\" />\n  <component name=\"TaskManager\">\n    <task active=\"true\" id=\"Default\" summary=\"Default task\">\n      <changelist id=\"917e66c0-1d7b-4efe-9703-ccf49d6dc510\" name=\"Changes\" comment=\"\" />\n      <created>1700165257770</created>\n      <option name=\"number\" value=\"Default\" />\n      <option name=\"presentableId\" value=\"Default\" />\n      <updated>1700165257770</updated>\n      <workItem from=\"1700165259657\" duration=\"1318000\" />\n    </task>\n    <servers />\n  </component>\n  <component name=\"TypeScriptGeneratedFilesManager\">\n    <option name=\"version\" value=\"3\" />\n  </component>\n  <component name=\"Vcs.Log.Tabs.Properties\">\n    <option name=\"TAB_STATES\">\n      <map>\n        <entry key=\"MAIN\">\n          <value>\n            <State />\n          </value>\n        </entry>\n      </map>\n    </option>\n  </component>\n</project>
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/workspace.xml b/.idea/workspace.xml
+--- a/.idea/workspace.xml	(revision 2e5464f220d5ab2efeb9e6c33d82884e9e4e0cb9)
++++ b/.idea/workspace.xml	(date 1700317333296)
+@@ -5,7 +5,6 @@
+   </component>
+   <component name="ChangeListManager">
+     <list default="true" id="917e66c0-1d7b-4efe-9703-ccf49d6dc510" name="Changes" comment="">
+-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+       <change beforePath="$PROJECT_DIR$/src/script.js" beforeDir="false" afterPath="$PROJECT_DIR$/src/script.js" afterDir="false" />
+     </list>
+     <option name="SHOW_DIALOG" value="false" />
+@@ -36,23 +35,23 @@
+     <option name="hideEmptyMiddlePackages" value="true" />
+     <option name="showLibraryContents" value="true" />
+   </component>
+-  <component name="PropertiesComponent"><![CDATA[{
+-  "keyToString": {
+-    "DefaultHtmlFileTemplate": "HTML File",
+-    "RunOnceActivity.OpenProjectViewOnStart": "true",
+-    "RunOnceActivity.ShowReadmeOnStart": "true",
+-    "WebServerToolWindowFactoryState": "false",
+-    "git-widget-placeholder": "feature/score-and-constraints",
+-    "last_opened_file_path": "/Users/jacquelineselbach/IdeaProjects/VAR23/lib",
+-    "list.type.of.created.stylesheet": "CSS",
+-    "node.js.detected.package.eslint": "true",
+-    "node.js.detected.package.tslint": "true",
+-    "node.js.selected.package.eslint": "(autodetect)",
+-    "node.js.selected.package.tslint": "(autodetect)",
+-    "nodejs_package_manager_path": "npm",
+-    "vue.rearranger.settings.migration": "true"
++  <component name="PropertiesComponent">{
++  &quot;keyToString&quot;: {
++    &quot;DefaultHtmlFileTemplate&quot;: &quot;HTML File&quot;,
++    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
++    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
++    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
++    &quot;git-widget-placeholder&quot;: &quot;feature/score-and-constraints&quot;,
++    &quot;last_opened_file_path&quot;: &quot;/Users/jacquelineselbach/IdeaProjects/VAR23/lib&quot;,
++    &quot;list.type.of.created.stylesheet&quot;: &quot;CSS&quot;,
++    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
++    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
++    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
++    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
++    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
++    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+   }
+-}]]></component>
++}</component>
+   <component name="RecentsManager">
+     <key name="CopyFile.RECENT_KEYS">
+       <recent name="$PROJECT_DIR$/lib" />
