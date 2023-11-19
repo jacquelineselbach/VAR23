@@ -260,8 +260,10 @@ function splitBlockAndAddNextOneIfOverlaps() {
         topLayer.threejs.position[direction] = previousLayer.threejs.position[direction];
         topLayer.cannonjs.position[direction] = previousLayer.cannonjs.position[direction];
     } else if (overlap > 0) {
-
-        updateRegularScore();
+        // Only update the score if not in roboticAlignment mode
+        if (!roboticAlignment) {
+            updateRegularScore();
+        }
         cutBox(topLayer, overlap, size, delta);
 
         // Add overhang
