@@ -30,8 +30,6 @@ function init() {
     roboticAlignment = true;
     gameEnded = false;
 
-    highScoreElement.innerText = `High Score: ${highScore}`;
-
     lastTime = 0;
     stack = [];
     overhangs = [];
@@ -79,15 +77,21 @@ function init() {
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setAnimationLoop(animation);
     document.body.appendChild(renderer.domElement);
-
+    highScoreElement.style.display = highScore > 0 ? "block" : "none";
+    scoreElement.style.display = "none";
 
 }
 
 function updateHighScore() {
     const currentScore = parseInt(scoreElement.innerText, 10);
     if (currentScore > highScore) {
-        highScore = currentScore;   ///Unresolved variable or type highScore
+        highScore = currentScore;
         highScoreElement.innerText = `High Score: ${highScore}`;
+        if (highScore > 0) {
+            highScoreElement.style.display = "block";
+        } else {
+            highScoreElement.style.display = "none";
+        }
     }
 }
 
@@ -108,6 +112,17 @@ function startGame() {
     if (instructionsElement) instructionsElement.style.display = "none";
     if (resultsElement) resultsElement.style.display = "none";
     if (scoreElement) scoreElement.innerText = 0;
+    if (highScore > 0) {
+        highScoreElement.style.display = "block";
+    } else {
+        highScoreElement.style.display = "none";
+    }
+
+    if (scoreElement.innerText === "0") {
+        scoreElement.style.display = "none";
+    } else {
+        scoreElement.style.display = "block";
+    }
 
     if (world) {
         while (world.bodies.length > 0) {
@@ -274,19 +289,23 @@ function splitBlockAndAddNextOneIfOverlaps() {
 }
 
 function updateRegularScore() {
-    console.log("Updating score for regular placement");
-    const currentScore = parseInt(scoreElement.innerText, 10);
-    console.log("Current score:", currentScore);
-    scoreElement.innerText = currentScore + 1;
-    console.log("Updated score:", scoreElement.innerText);
+    const currentScore = parseInt(scoreElement.innerText, 10) + 1;
+    scoreElement.innerText = currentScore;
+
+    if (currentScore > 0) {
+        scoreElement.style.display = "block";
+    }
 }
 
 function updateScoreForPrecision() {
-    // Double the score for precise placement
-    const currentScore = parseInt(scoreElement.innerText, 10);
-    console.log("Updating score from", currentScore, "to", currentScore * 2);
-    scoreElement.innerText = currentScore * 2;
+    const currentScore = parseInt(scoreElement.innerText, 10) * 2;
+    scoreElement.innerText = currentScore;
+
+    if (currentScore > 0) {
+        scoreElement.style.display = "block";
+    }
 }
+
 
 
 function missedTheSpot() {
