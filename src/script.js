@@ -13,7 +13,8 @@ let robotPrecision;
 let baseHue;
 const boxHeight = 1;
 const originalBoxSize = 3;
-
+let highScore = 0;
+const highScoreElement = document.getElementById("highScore");
 const scoreElement = document.getElementById("score");
 const instructionsElement = document.getElementById("startScreen");
 const gameOverElement = document.getElementById("gameOver");
@@ -28,6 +29,9 @@ function setBlockPrecision() {
 function init() {
     roboticAlignment = true;
     gameEnded = false;
+
+    highScoreElement.innerText = `High Score: ${highScore}`;
+
     lastTime = 0;
     stack = [];
     overhangs = [];
@@ -77,6 +81,14 @@ function init() {
     document.body.appendChild(renderer.domElement);
 
 
+}
+
+function updateHighScore() {
+    const currentScore = parseInt(scoreElement.innerText, 10);
+    if (currentScore > highScore) {
+        highScore = currentScore;   ///Unresolved variable or type highScore
+        highScoreElement.innerText = `High Score: ${highScore}`;
+    }
 }
 
 function startGame() {
@@ -289,6 +301,7 @@ function missedTheSpot() {
     world.remove(topLayer.cannonjs);
     scene.remove(topLayer.threejs);
 
+    updateHighScore()
     gameEnded = true;
 
     if (gameOverElement) gameOverElement.style.display = "flex";
