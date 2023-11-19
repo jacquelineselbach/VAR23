@@ -1,6 +1,11 @@
 import * as THREE from 'three';
+import { loadBirds } from './birds.js';
+import { createControls } from './controls.js';
+import { Clock } from 'three';
 
 window.focus();
+let controls;
+const clock = new Clock();
 
 let camera, scene, renderer;
 let world;
@@ -13,11 +18,15 @@ let robotPrecision;
 let baseHue;
 const boxHeight = 1;
 const originalBoxSize = 3;
+let color;
 
 const scoreElement = document.getElementById("score");
 const instructionsElement = document.getElementById("startScreen");
 const gameOverElement = document.getElementById("gameOver");
 const resultsElement = document.getElementById("results");
+const { parrot, flamingo, stork } = await loadBirds();
+const radius = 5;
+let theta = 0;
 
 init();
 
@@ -76,6 +85,13 @@ function init() {
     renderer.setAnimationLoop(animation);
     document.body.appendChild(renderer.domElement);
 
+    controls = createControls(camera, renderer.domElement);
+    var desiredScale = 0.02; // You can adjust this value as needed
+    // Apply the scale to the object
+    parrot.scale.set(desiredScale, desiredScale, desiredScale);
+    flamingo.scale.set(desiredScale, desiredScale, desiredScale);
+    stork.scale.set(desiredScale, desiredScale, desiredScale);
+    scene.add(parrot, flamingo, stork);
 
 }
 
@@ -108,6 +124,14 @@ function startGame() {
             const mesh = scene.children.find((c) => c.type === "Mesh");
             scene.remove(mesh);
         }
+
+
+        parrot.position.set(4, 2.-6, 2.5);
+        flamingo.position.set(7.5, 0, -10);
+        stork.position.set(0, -2.5, 10);
+      
+        scene.add(parrot, flamingo, stork);
+
 
         addLayer(0, 0, originalBoxSize, originalBoxSize);
 
@@ -147,7 +171,7 @@ function generateBox(x, y, z, width, depth, falls) {
     const hueVariation = baseHue + (Math.random() - 0.5) * 20;
     const saturation = 50 + Math.random() * 20;
     const lightness = 70 + Math.random() * 20;
-    const color = new THREE.Color(`hsl(${hueVariation}, ${saturation}%, ${lightness}%)`);
+    color = new THREE.Color(`hsl(${hueVariation}, ${saturation}%, ${lightness}%)`);
     const material = new THREE.MeshLambertMaterial({ color });
     const mesh = new THREE.Mesh(geometry, material);
     mesh.position.set(x, y, z);
@@ -211,8 +235,31 @@ function eventHandler() {
     else splitBlockAndAddNextOneIfOverlaps();
 }
 
+function moveBirdsUp() {
+    parrot.position.y = parrot.position.y+boxHeight;
+    flamingo.position.y = flamingo.position.y+boxHeight;
+    stork.position.y = stork.position.y+boxHeight;
+    colorBirds([parrot, flamingo, stork])
+}
+
+function colorBirds(bird) {
+    bird.forEach(function(element) {
+         element.traverse((child) => {
+        if (child.isMesh) {
+          // Check if the material is a MeshStandardMaterial (or other material type)
+          if (child.material.isMeshStandardMaterial) {
+            // Change the color of the material
+            child.material.color = new THREE.Color(color); // Replace with your desired color
+          }
+        }
+      });
+    });
+}
+
 function splitBlockAndAddNextOneIfOverlaps() {
     if (gameEnded) return;
+
+    moveBirdsUp()
 
     const topLayer = stack[stack.length - 1];
     const previousLayer = stack[stack.length - 2];
@@ -300,6 +347,22 @@ function animation(time) {
     if (lastTime) {
         const timePassed = time - lastTime;
         const speed = 0.008;
+        
+        //animate and move birds
+        tick([parrot, flamingo, stork]);
+        // Update the object's position in a circular path
+        theta += 0.15;
+        parrot.position.x = radius * Math.cos(theta/10);
+        parrot.position.z = radius * Math.sin(theta/10);
+        flamingo.position.x = radius * Math.cos(theta/10);
+        flamingo.position.z = radius * Math.sin(theta/10);
+        stork.position.x = radius * Math.cos(theta/10);
+         stork.position.z = radius * Math.sin(theta/10);
+
+  // Rotate the object 
+  parrot.rotation.y += -0.0155;
+  flamingo.rotation.y += -0.0155;
+  stork.rotation.y += -0.0155;
 
         const topLayer = stack[stack.length - 1];
         const previousLayer = stack[stack.length - 2];
@@ -365,3 +428,12 @@ document.getElementById("restartButton").addEventListener("click", function() {
     scene.background = generateBackgroundColor();
     startGame();
 });
+
+function tick(updatables) {
+    // only call the getDelta function once per frame!
+    const delta = clock.getDelta();
+
+    for (const object of updatables) {
+      object.tick(delta);
+    }
+}
