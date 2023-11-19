@@ -7,12 +7,12 @@ let world;
 let lastTime;
 let stack;
 let overhangs;
-const boxHeight = 1;
-const originalBoxSize = 3;
 let roboticAlignment;
 let gameEnded;
 let robotPrecision;
 let baseHue;
+const boxHeight = 1;
+const originalBoxSize = 3;
 
 const scoreElement = document.getElementById("score");
 const instructionsElement = document.getElementById("startScreen");
@@ -104,8 +104,8 @@ function startGame() {
     }
 
     if (scene) {
-        while (scene.children.find((c) => c.type == "Mesh")) {
-            const mesh = scene.children.find((c) => c.type == "Mesh");
+        while (scene.children.find((c) => c.type === "Mesh")) {
+            const mesh = scene.children.find((c) => c.type === "Mesh");
             scene.remove(mesh);
         }
 
@@ -174,8 +174,8 @@ function generateBox(x, y, z, width, depth, falls) {
 
 function cutBox(topLayer, overlap, size, delta) {
     const direction = topLayer.direction;
-    const newWidth = direction == "x" ? overlap : topLayer.width;
-    const newDepth = direction == "z" ? overlap : topLayer.depth;
+    const newWidth = direction === "x" ? overlap : topLayer.width;
+    const newDepth = direction === "z" ? overlap : topLayer.depth;
 
     topLayer.width = newWidth;
     topLayer.depth = newDepth;
@@ -195,15 +195,14 @@ function cutBox(topLayer, overlap, size, delta) {
 window.addEventListener("mousedown", eventHandler);
 window.addEventListener("touchstart", eventHandler);
 window.addEventListener("keydown", function (event) {
-    if (event.key == " ") {
+    if (event.key === " ") {
         event.preventDefault();
         eventHandler();
         return;
     }
-    if (event.key == "R" || event.key == "r") {
+    if (event.key === "R" || event.key === "r") {
         event.preventDefault();
         startGame();
-        return;
     }
 });
 
@@ -219,44 +218,64 @@ function splitBlockAndAddNextOneIfOverlaps() {
     const previousLayer = stack[stack.length - 2];
 
     const direction = topLayer.direction;
-
-    const size = direction == "x" ? topLayer.width : topLayer.depth;
-    const delta =
-        topLayer.threejs.position[direction] -
-        previousLayer.threejs.position[direction];
+    const size = direction === "x" ? topLayer.width : topLayer.depth;
+    const delta = topLayer.threejs.position[direction] - previousLayer.threejs.position[direction];
     const overhangSize = Math.abs(delta);
     const overlap = size - overhangSize;
 
-    if (overlap > 0) {
+    const precisionThreshold = 0.1; // Small threshold for precise placement
+
+    if (Math.abs(delta) < precisionThreshold) {
+        console.log("Precise placement detected");
+        updateScoreForPrecision();
+
+        // Align perfectly without cutting
+        topLayer.threejs.position[direction] = previousLayer.threejs.position[direction];
+        topLayer.cannonjs.position[direction] = previousLayer.cannonjs.position[direction];
+    } else if (overlap > 0) {
+
+        updateRegularScore();
         cutBox(topLayer, overlap, size, delta);
 
-        // Overhang
+        // Add overhang
         const overhangShift = (overlap / 2 + overhangSize / 2) * Math.sign(delta);
-        const overhangX =
-            direction == "x"
-                ? topLayer.threejs.position.x + overhangShift
-                : topLayer.threejs.position.x;
-        const overhangZ =
-            direction == "z"
-                ? topLayer.threejs.position.z + overhangShift
-                : topLayer.threejs.position.z;
-        const overhangWidth = direction == "x" ? overhangSize : topLayer.width;
-        const overhangDepth = direction == "z" ? overhangSize : topLayer.depth;
+        const overhangX = direction === "x" ? topLayer.threejs.position.x + overhangShift : topLayer.threejs.position.x;
+        const overhangZ = direction === "z" ? topLayer.threejs.position.z + overhangShift : topLayer.threejs.position.z;
+        const overhangWidth = direction === "x" ? overhangSize : topLayer.width;
+        const overhangDepth = direction === "z" ? overhangSize : topLayer.depth;
 
         addOverhang(overhangX, overhangZ, overhangWidth, overhangDepth);
-
-        const nextX = direction == "x" ? topLayer.threejs.position.x : -10;
-        const nextZ = direction == "z" ? topLayer.threejs.position.z : -10;
-        const newWidth = topLayer.width;
-        const newDepth = topLayer.depth;
-        const nextDirection = direction == "x" ? "z" : "x";
-
-        if (scoreElement) scoreElement.innerText = stack.length - 1;
-        addLayer(nextX, nextZ, newWidth, newDepth, nextDirection);
     } else {
         missedTheSpot();
     }
+
+    // Prepare the next layer
+    if (!gameEnded) {
+        const nextX = direction === "x" ? topLayer.threejs.position.x : -10;
+        const nextZ = direction === "z" ? topLayer.threejs.position.z : -10;
+        const newWidth = topLayer.width;
+        const newDepth = topLayer.depth;
+        const nextDirection = direction === "x" ? "z" : "x";
+
+        addLayer(nextX, nextZ, newWidth, newDepth, nextDirection);
+    }
 }
+
+function updateRegularScore() {
+    console.log("Updating score for regular placement");
+    const currentScore = parseInt(scoreElement.innerText, 10);
+    console.log("Current score:", currentScore);
+    scoreElement.innerText = currentScore + 1;
+    console.log("Updated score:", scoreElement.innerText);
+}
+
+function updateScoreForPrecision() {
+    // Double the score for precise placement
+    const currentScore = parseInt(scoreElement.innerText, 10);
+    console.log("Updating score from", currentScore, "to", currentScore * 2);
+    scoreElement.innerText = currentScore * 2;
+}
+
 
 function missedTheSpot() {
     const topLayer = stack[stack.length - 1];
