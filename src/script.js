@@ -148,12 +148,22 @@ function startGame() {
 }
 
 function generateBackgroundColor() {
-    const hueVariation = baseHue + (Math.random() - 0.5) * 30;
-    const saturation = 30 + Math.random() * 20;
-    const lightness = 80 + Math.random() * 20;
-    return new THREE.Color(`hsl(${hueVariation}, ${saturation}%, ${lightness}%)`);
+    if (isDarkMode()) {
+        const hueVariation = baseHue + (Math.random() - 0.5) * 30;
+        const saturation = 5 + Math.random() * 5; // Lower saturation for darker color
+        const lightness = 5 + Math.random() * 5; // Lower lightness for darker color
+        return new THREE.Color(`hsl(${hueVariation}, ${saturation}%, ${lightness}%)`);
+    } else {
+        const hueVariation = baseHue + (Math.random() - 0.5) * 30;
+        const saturation = 30 + Math.random() * 20;
+        const lightness = 80 + Math.random() * 20;
+        return new THREE.Color(`hsl(${hueVariation}, ${saturation}%, ${lightness}%)`);
+    }
 }
 
+function isDarkMode() {
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+}
 
 function addLayer(x, z, width, depth, direction) {
     const y = boxHeight * stack.length;
@@ -250,13 +260,12 @@ function splitBlockAndAddNextOneIfOverlaps() {
     const overhangSize = Math.abs(delta);
     const overlap = size - overhangSize;
 
-    const precisionThreshold = 0.1; // Small threshold for precise placement
+    const precisionThreshold = 0.1;
 
     if (Math.abs(delta) < precisionThreshold) {
         console.log("Precise placement detected");
         updateScoreForPrecision();
 
-        // Align perfectly without cutting
         topLayer.threejs.position[direction] = previousLayer.threejs.position[direction];
         topLayer.cannonjs.position[direction] = previousLayer.cannonjs.position[direction];
     } else if (overlap > 0) {
@@ -266,7 +275,6 @@ function splitBlockAndAddNextOneIfOverlaps() {
         }
         cutBox(topLayer, overlap, size, delta);
 
-        // Add overhang
         const overhangShift = (overlap / 2 + overhangSize / 2) * Math.sign(delta);
         const overhangX = direction === "x" ? topLayer.threejs.position.x + overhangShift : topLayer.threejs.position.x;
         const overhangZ = direction === "z" ? topLayer.threejs.position.z + overhangShift : topLayer.threejs.position.z;
@@ -278,7 +286,6 @@ function splitBlockAndAddNextOneIfOverlaps() {
         missedTheSpot();
     }
 
-    // Prepare the next layer
     if (!gameEnded) {
         const nextX = direction === "x" ? topLayer.threejs.position.x : -10;
         const nextZ = direction === "z" ? topLayer.threejs.position.z : -10;
@@ -398,4 +405,8 @@ document.getElementById("restartButton").addEventListener("click", function() {
     baseHue = Math.floor(Math.random() * 360);
     scene.background = generateBackgroundColor();
     startGame();
+});
+
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+    scene.background = generateBackgroundColor();
 });
