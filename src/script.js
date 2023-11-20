@@ -396,6 +396,10 @@ function eventHandler() {
     else splitBlockAndAddNextOneIfOverlaps();
 }
 
+function isLightOrDarkMode(e) {
+    scene.background = generateBackgroundColor();
+}
+
 window.addEventListener("mousedown", eventHandler);
 window.addEventListener("touchstart", eventHandler);
 window.addEventListener("keydown", function (event) {
@@ -431,6 +435,4 @@ document.getElementById("restartButton").addEventListener("click", function() {
     startGame();
 });
 
-window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
-    scene.background = generateBackgroundColor();
-});
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', isLightOrDarkMode);

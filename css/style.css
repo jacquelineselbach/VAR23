@@ -59,9 +59,9 @@ body {
     font-weight: bold;
     text-transform: uppercase;
     text-shadow:
-            3px 3px 0px rgba(255, 0, 0, 0.5),
-            4px 4px 0px rgba(128, 0, 0, 0.5),
-            5px 5px 0px rgba(255, 0, 0, 0.5);
+            3px 3px 0 rgba(255, 0, 0, 0.5),
+            4px 4px 0 rgba(128, 0, 0, 0.5),
+            5px 5px 0 rgba(255, 0, 0, 0.5);
 }
 
 #restartButton {
