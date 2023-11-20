@@ -11,7 +11,7 @@ body {
     position: absolute;
     top: 10px;
     right: 10px;
-    font-size: 24px;
+    font-size: 18px;
     color: #808080;
     z-index: 1000;
     padding: 5px;
@@ -22,14 +22,13 @@ body {
 #highScore {
     position: absolute;
     top: 10px;
-    right: 150px;
-    font-size: 24px;
+    left: 10px;
+    font-size: 18px;
     color: #808080;
     z-index: 1000;
     padding: 5px;
     border-radius: 5px;
 }
-
 
 #startScreen {
     position: absolute;
@@ -71,8 +70,7 @@ body {
     border: none;
     padding: 10px 20px;
     text-align: center;
-    font-weight: bold;
-    font-size: 0.3em;
+    font-size: 18px;
     font-family: Monospace, serif;
     cursor: pointer;
     outline: white;
