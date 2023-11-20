@@ -299,11 +299,15 @@ function missedTheSpot() {
     world.removeBody(topLayer.cannonjs);
     scene.remove(topLayer.threejs);
 
+    if (roboticAlignment) {
+        location.reload()
+    } else {
+
     updateHighScore()
     gameEnded = true;
-
     if (gameOverElement) gameOverElement.style.display = "flex";
     if (resultsElement && !roboticAlignment) resultsElement.style.display = "flex";
+    }
 }
 
 function updateRegularScore() {
