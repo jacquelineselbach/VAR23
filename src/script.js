@@ -259,7 +259,7 @@ function colorBirds(bird) {
 function splitBlockAndAddNextOneIfOverlaps() {
     if (gameEnded) return;
 
-    moveBirdsUp()
+    //moveBirdsUp()
 
     const topLayer = stack[stack.length - 1];
     const previousLayer = stack[stack.length - 2];
@@ -353,11 +353,14 @@ function animation(time) {
         // Update the object's position in a circular path
         theta += 0.15;
         parrot.position.x = radius * Math.cos(theta/10);
+        parrot.position.y = 10;
         parrot.position.z = radius * Math.sin(theta/10);
         flamingo.position.x = radius * Math.cos(theta/10);
         flamingo.position.z = radius * Math.sin(theta/10);
+        flamingo.position.y = 20;
         stork.position.x = radius * Math.cos(theta/10);
          stork.position.z = radius * Math.sin(theta/10);
+         stork.position.y = 3;
 
   // Rotate the object 
   parrot.rotation.y += -0.0155;
