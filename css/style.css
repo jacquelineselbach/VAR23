@@ -11,7 +11,7 @@ body {
     position: absolute;
     top: 10px;
     right: 10px;
-    font-size: 18px;
+    font-size: 16px;
     color: #808080;
     z-index: 1000;
     padding: 5px;
@@ -23,7 +23,7 @@ body {
     position: absolute;
     top: 10px;
     left: 10px;
-    font-size: 18px;
+    font-size: 16px;
     color: #808080;
     z-index: 1000;
     padding: 5px;
@@ -59,18 +59,18 @@ body {
     font-weight: bold;
     text-transform: uppercase;
     text-shadow:
-            3px 3px 0px rgba(255, 0, 0, 0.5),
-            4px 4px 0px rgba(128, 0, 0, 0.5),
-            5px 5px 0px rgba(255, 0, 0, 0.5);
+            3px 3px 0 rgba(255, 0, 0, 0.5),
+            4px 4px 0 rgba(128, 0, 0, 0.5),
+            5px 5px 0 rgba(255, 0, 0, 0.5);
 }
 
 #restartButton {
     background-color: transparent;
-    color: white;
+    color: #808080;
     border: none;
     padding: 10px 20px;
     text-align: center;
-    font-size: 18px;
+    font-size: 16px;
     font-family: Monospace, serif;
     cursor: pointer;
     outline: white;

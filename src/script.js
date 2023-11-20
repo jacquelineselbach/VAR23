@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import * as CANNON from "cannon-es";
 
 window.focus();
 
@@ -11,9 +12,9 @@ let roboticAlignment;
 let gameEnded;
 let robotPrecision;
 let baseHue;
+let highScore = 0;
 const boxHeight = 1;
 const originalBoxSize = 3;
-let highScore = 0;
 const highScoreElement = document.getElementById("highScore");
 const scoreElement = document.getElementById("score");
 const instructionsElement = document.getElementById("startScreen");
@@ -22,48 +23,40 @@ const resultsElement = document.getElementById("results");
 
 init();
 
-function setBlockPrecision() {
-    robotPrecision = Math.random() - 0.5;
-}
-
 function init() {
+
     roboticAlignment = true;
     gameEnded = false;
-
     lastTime = 0;
     stack = [];
     overhangs = [];
-    setBlockPrecision();
+
+    scene = new THREE.Scene();
 
     world = new CANNON.World();
     world.gravity.set(0, -10, 0);
     world.broadphase = new CANNON.NaiveBroadphase();
-    world.solver.iterations = 40;
+
+    baseHue = Math.floor(Math.random() * 360);
+    scene.background = generateBackgroundColor();
 
     const aspect = window.innerWidth / window.innerHeight;
     const width = 10;
     const height = width / aspect;
 
     camera = new THREE.OrthographicCamera(
-        width / -2, // left
-        width / 2, // right
-        height / 2, // top
-        height / -2, // bottom
-        0, // near plane
-        100 // far plane
+        width / -2,
+        width / 2,
+        height / 2,
+        height / -2,
+        0,
+        100
     );
 
     camera.position.set(4, 4, 4);
     camera.lookAt(0, 0, 0);
 
-    scene = new THREE.Scene();
-
-    baseHue = Math.floor(Math.random() * 360);
-    scene.background = generateBackgroundColor();
-
-
     addLayer(0, 0, originalBoxSize, originalBoxSize);
-
     addLayer(-10, 0, originalBoxSize, originalBoxSize, "x");
 
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
@@ -77,8 +70,11 @@ function init() {
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setAnimationLoop(animation);
     document.body.appendChild(renderer.domElement);
-    highScoreElement.style.display = highScore > 0 ? "block" : "none";
+
     scoreElement.style.display = "none";
+    highScoreElement.style.display = highScore > 0 ? "block" : "none";
+
+    setBlockPrecision();
 
 }
 
@@ -97,23 +93,32 @@ function startGame() {
     overhangs = [];
 
     if (instructionsElement) instructionsElement.style.display = "none";
+
     if (resultsElement) resultsElement.style.display = "none";
+
     if (scoreElement) scoreElement.innerText = 0;
+
     if (highScore > 0) {
+
         highScoreElement.style.display = "block";
+
     } else {
+
         highScoreElement.style.display = "none";
     }
 
     if (scoreElement.innerText === "0") {
+
         scoreElement.style.display = "none";
+
     } else {
+
         scoreElement.style.display = "block";
     }
 
     if (world) {
         while (world.bodies.length > 0) {
-            world.remove(world.bodies[0]);
+            world.removeBody(world.bodies[0]);
         }
     }
 
@@ -135,10 +140,11 @@ function startGame() {
 }
 
 function generateBackgroundColor() {
+
     if (isDarkMode()) {
         const hueVariation = baseHue + (Math.random() - 0.5) * 30;
-        const saturation = 5 + Math.random() * 5; // Lower saturation for darker color
-        const lightness = 5 + Math.random() * 5; // Lower lightness for darker color
+        const saturation = 5 + Math.random() * 5;
+        const lightness = 5 + Math.random() * 5;
         return new THREE.Color(`hsl(${hueVariation}, ${saturation}%, ${lightness}%)`);
     } else {
         const hueVariation = baseHue + (Math.random() - 0.5) * 30;
@@ -165,8 +171,12 @@ function addOverhang(x, z, width, depth) {
     overhangs.push(overhang);
 }
 
+function setBlockPrecision() {
+    robotPrecision = Math.random() - 0.5;
+}
+
 function generateBox(x, y, z, width, depth, falls) {
-    // ThreeJS
+
     const geometry = new THREE.BoxGeometry(width, boxHeight, depth);
     const hueVariation = baseHue + (Math.random() - 0.5) * 20;
     const saturation = 50 + Math.random() * 20;
@@ -174,17 +184,19 @@ function generateBox(x, y, z, width, depth, falls) {
     const color = new THREE.Color(`hsl(${hueVariation}, ${saturation}%, ${lightness}%)`);
     const material = new THREE.MeshLambertMaterial({ color });
     const mesh = new THREE.Mesh(geometry, material);
+
     mesh.position.set(x, y, z);
     scene.add(mesh);
 
-    // CannonJS
     const shape = new CANNON.Box(
         new CANNON.Vec3(width / 2, boxHeight / 2, depth / 2)
     );
+
     let mass = falls ? 5 : 0;
     mass *= width / originalBoxSize;
     mass *= depth / originalBoxSize;
     const body = new CANNON.Body({ mass, shape });
+
     body.position.set(x, y, z);
     world.addBody(body);
 
@@ -197,6 +209,7 @@ function generateBox(x, y, z, width, depth, falls) {
 }
 
 function cutBox(topLayer, overlap, size, delta) {
+
     const direction = topLayer.direction;
     const newWidth = direction === "x" ? overlap : topLayer.width;
     const newDepth = direction === "z" ? overlap : topLayer.depth;
@@ -216,26 +229,8 @@ function cutBox(topLayer, overlap, size, delta) {
     topLayer.cannonjs.addShape(shape);
 }
 
-window.addEventListener("mousedown", eventHandler);
-window.addEventListener("touchstart", eventHandler);
-window.addEventListener("keydown", function (event) {
-    if (event.key === " ") {
-        event.preventDefault();
-        eventHandler();
-        return;
-    }
-    if (event.key === "R" || event.key === "r") {
-        event.preventDefault();
-        startGame();
-    }
-});
-
-function eventHandler() {
-    if (roboticAlignment) startGame();
-    else splitBlockAndAddNextOneIfOverlaps();
-}
-
 function splitBlockAndAddNextOneIfOverlaps() {
+
     if (gameEnded) return;
 
     const topLayer = stack[stack.length - 1];
@@ -250,16 +245,20 @@ function splitBlockAndAddNextOneIfOverlaps() {
     const precisionThreshold = 0.1;
 
     if (Math.abs(delta) < precisionThreshold) {
-        console.log("Precise placement detected");
-        updateScoreForPrecision();
+
+        if (!roboticAlignment) {
+            updateScoreForPrecision();
+        }
 
         topLayer.threejs.position[direction] = previousLayer.threejs.position[direction];
         topLayer.cannonjs.position[direction] = previousLayer.cannonjs.position[direction];
+
     } else if (overlap > 0) {
-        // Only update the score if not in roboticAlignment mode
+
         if (!roboticAlignment) {
             updateRegularScore();
         }
+
         cutBox(topLayer, overlap, size, delta);
 
         const overhangShift = (overlap / 2 + overhangSize / 2) * Math.sign(delta);
@@ -269,11 +268,13 @@ function splitBlockAndAddNextOneIfOverlaps() {
         const overhangDepth = direction === "z" ? overhangSize : topLayer.depth;
 
         addOverhang(overhangX, overhangZ, overhangWidth, overhangDepth);
+
     } else {
         missedTheSpot();
     }
 
     if (!gameEnded) {
+
         const nextX = direction === "x" ? topLayer.threejs.position.x : -10;
         const nextZ = direction === "z" ? topLayer.threejs.position.z : -10;
         const newWidth = topLayer.width;
@@ -281,6 +282,31 @@ function splitBlockAndAddNextOneIfOverlaps() {
         const nextDirection = direction === "x" ? "z" : "x";
 
         addLayer(nextX, nextZ, newWidth, newDepth, nextDirection);
+    }
+}
+
+function missedTheSpot() {
+
+    const topLayer = stack[stack.length - 1];
+
+    addOverhang(
+        topLayer.threejs.position.x,
+        topLayer.threejs.position.z,
+        topLayer.width,
+        topLayer.depth
+    );
+
+    world.removeBody(topLayer.cannonjs);
+    scene.remove(topLayer.threejs);
+
+    if (roboticAlignment) {
+        location.reload()
+    } else {
+
+    updateHighScore()
+    gameEnded = true;
+    if (gameOverElement) gameOverElement.style.display = "flex";
+    if (resultsElement && !roboticAlignment) resultsElement.style.display = "flex";
     }
 }
 
@@ -319,26 +345,6 @@ function updateHighScore() {
         }
     }
 }
-
-function missedTheSpot() {
-    const topLayer = stack[stack.length - 1];
-
-    addOverhang(
-        topLayer.threejs.position.x,
-        topLayer.threejs.position.z,
-        topLayer.width,
-        topLayer.depth
-    );
-    world.remove(topLayer.cannonjs);
-    scene.remove(topLayer.threejs);
-
-    updateHighScore()
-    gameEnded = true;
-
-    if (gameOverElement) gameOverElement.style.display = "flex";
-    if (resultsElement && !roboticAlignment) resultsElement.style.display = "flex";
-}
-
 
 function animation(time) {
     if (lastTime) {
@@ -389,6 +395,29 @@ function updatePhysics(timePassed) {
     });
 }
 
+function eventHandler() {
+    if (roboticAlignment) startGame();
+    else splitBlockAndAddNextOneIfOverlaps();
+}
+
+function isLightOrDarkMode(e) {
+    scene.background = generateBackgroundColor();
+}
+
+window.addEventListener("mousedown", eventHandler);
+window.addEventListener("touchstart", eventHandler);
+window.addEventListener("keydown", function (event) {
+    if (event.key === " ") {
+        event.preventDefault();
+        eventHandler();
+        return;
+    }
+    if (event.key === "R" || event.key === "r") {
+        event.preventDefault();
+        startGame();
+    }
+});
+
 window.addEventListener("resize", () => {
     // Adjust camera
     console.log("resize", window.innerWidth, window.innerHeight);
@@ -410,6 +439,4 @@ document.getElementById("restartButton").addEventListener("click", function() {
     startGame();
 });
 
-window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
-    scene.background = generateBackgroundColor();
-});
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', isLightOrDarkMode);
