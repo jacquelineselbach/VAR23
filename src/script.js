@@ -82,19 +82,6 @@ function init() {
 
 }
 
-function updateHighScore() {
-    const currentScore = parseInt(scoreElement.innerText, 10);
-    if (currentScore > highScore) {
-        highScore = currentScore;
-        highScoreElement.innerText = `High Score: ${highScore}`;
-        if (highScore > 0) {
-            highScoreElement.style.display = "block";
-        } else {
-            highScoreElement.style.display = "none";
-        }
-    }
-}
-
 function startGame() {
 
     if (scoreElement) {
@@ -307,15 +294,31 @@ function updateRegularScore() {
 }
 
 function updateScoreForPrecision() {
-    const currentScore = parseInt(scoreElement.innerText, 10) * 2;
-    scoreElement.innerText = currentScore;
 
-    if (currentScore > 0) {
-        scoreElement.style.display = "block";
+    let currentScore = parseInt(scoreElement.innerText, 10);
+
+    if (currentScore === 0) {
+        currentScore = 1;
+    } else {
+        currentScore *= 2;
     }
+
+    scoreElement.innerText = currentScore;
+    scoreElement.style.display = "block";
 }
 
-
+function updateHighScore() {
+    const currentScore = parseInt(scoreElement.innerText, 10);
+    if (currentScore > highScore) {
+        highScore = currentScore;
+        highScoreElement.innerText = `High Score: ${highScore}`;
+        if (highScore > 0) {
+            highScoreElement.style.display = "block";
+        } else {
+            highScoreElement.style.display = "none";
+        }
+    }
+}
 
 function missedTheSpot() {
     const topLayer = stack[stack.length - 1];
