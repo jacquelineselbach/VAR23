@@ -1,7 +1,10 @@
 import * as THREE from 'three';
 import * as CANNON from "cannon-es";
+import { loadBirds } from './birds.js';
+import { Clock } from 'three';
 
 window.focus();
+const clock = new Clock();
 
 let camera, scene, renderer;
 let world;
@@ -20,6 +23,9 @@ const scoreElement = document.getElementById("score");
 const instructionsElement = document.getElementById("startScreen");
 const gameOverElement = document.getElementById("gameOver");
 const resultsElement = document.getElementById("results");
+const { parrot, flamingo, stork } = await loadBirds();
+const radius = 5;
+let theta = 0;
 
 init();
 
@@ -76,6 +82,15 @@ function init() {
 
     setBlockPrecision();
 
+    //Set scale of birds
+    var desiredScale = 0.02;
+    // Apply the scale to the object
+    parrot.scale.set(desiredScale, desiredScale, desiredScale);
+    flamingo.scale.set(desiredScale, desiredScale, desiredScale);
+    stork.scale.set(desiredScale, desiredScale, desiredScale);
+    scene.add(parrot, flamingo, stork);
+
+
 }
 
 function startGame() {
@@ -127,6 +142,9 @@ function startGame() {
             const mesh = scene.children.find((c) => c.type === "Mesh");
             scene.remove(mesh);
         }
+
+        //Add birds to scene
+        scene.add(parrot, flamingo, stork);  
 
         addLayer(0, 0, originalBoxSize, originalBoxSize);
 
@@ -384,6 +402,25 @@ function animation(time) {
         renderer.render(scene, camera);
     }
     lastTime = time;
+
+         //Animate and move birds
+         tick([parrot, flamingo, stork]);
+        //Update the object's position in a circular path
+        theta += 0.15;
+        parrot.position.x = radius * Math.cos(theta/10);
+        parrot.position.y = 10;
+        parrot.position.z = radius * Math.sin(theta/10);
+        flamingo.position.x = radius * Math.cos(theta/10);
+        flamingo.position.z = radius * Math.sin(theta/10);
+        flamingo.position.y = 20;
+        stork.position.x = radius * Math.cos(theta/10);
+        stork.position.z = radius * Math.sin(theta/10);
+        stork.position.y = 3;
+        
+        // Rotate the object 
+        parrot.rotation.y += -0.0155;
+        flamingo.rotation.y += -0.0155;
+        stork.rotation.y += -0.0155;
 }
 
 function updatePhysics(timePassed) {
@@ -438,5 +475,14 @@ document.getElementById("restartButton").addEventListener("click", function() {
     scene.background = generateBackgroundColor();
     startGame();
 });
+
+function tick(updatables) {
+    // only call the getDelta function once per frame!
+    const delta = clock.getDelta();
+
+    for (const object of updatables) {
+      object.tick(delta);
+    }
+}
 
 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', isLightOrDarkMode);
