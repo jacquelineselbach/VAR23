@@ -44,8 +44,6 @@ How to Play
 - Aim for precise alignment to increase your score.
 - The score is displayed during the game, and the high score is saved.
   
-Contributing
-
 Contributions to enhance the game or fix issues are welcome. Please follow these steps:
 
 - Fork the repository.
