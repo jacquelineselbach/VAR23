@@ -1,3 +1,5 @@
+# VAR23 - Stack Game
+
 This README document provides an overview and instructions for setting up and running the stack game, 
 an interactive 3D game developed using Three.js for 3D rendering and Cannon-es for physics simulation. 
 The game incorporates features like dynamic lighting, background color changes based on the system theme 
@@ -50,5 +52,3 @@ Contributions to enhance the game or fix issues are welcome. Please follow these
 - Create a new branch for your feature or fix.
 - Make changes and test.
 - Submit a pull request with a clear description of your changes.
-
-# VAR23
